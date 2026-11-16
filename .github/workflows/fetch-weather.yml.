@@ -1,0 +1,26 @@
+name: Fetch Rattle Rock weather
+
+on:
+  schedule:
+    - cron: "20 10 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download forecast + past 21 days
+        run: |
+          mkdir -p weather
+          curl -fsS -o weather/latest.json "https://api.open-meteo.com/v1/forecast?latitude=41.8192&longitude=-73.542&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,rain_sum,showers_sum,snowfall_sum,precipitation_probability_max,wind_speed_10m_mean,wind_speed_10m_max,wind_gusts_10m_max&hourly=temperature_2m&temperature_unit=fahrenheit&precipitation_unit=inch&wind_speed_unit=mph&timezone=America%2FNew_York&past_days=21&forecast_days=10"
+      - name: Commit if changed
+        run: |
+          git config user.name "weather-bot"
+          git config user.email "weather-bot@users.noreply.github.com"
+          git add weather/latest.json
+          git diff --cached --quiet || git commit -m "Weather update $(date -u +%F)"
+          git push
